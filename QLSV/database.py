@@ -1,37 +1,45 @@
-﻿path = r"D:\code\doan\QLSV.txt"
+﻿import mysql.connector
 
+def get_connection():
+    return mysql.connector.connect(host='localhost', user='root',password='123456',database='qlsv')
 def save(line):
-    """Ghi thêm 1 dòng dữ liệu vào file"""
-    try:
-        with open(path, "a", encoding="utf8") as f:
-            f.write(line + "\n")
-    except Exception as e:
-        print("Lỗi khi ghi file:", e)
+    masv, hoten, ngaysinh, gioitinh, diachi, sdt, malop = line.split('-')
+    conn = get_connection()
+    cursor = conn.cursor()
+    sql = "INSERT INTO sinhvien (MaSV, HoTen, NgaySinh, GioiTinh, DiaChi, SDT, MaLop) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+    cursor.execute(sql, (masv, hoten, ngaysinh, gioitinh, diachi, sdt, malop))
+    conn.commit()
+    conn.close()
 
 
 def read():
-    """Đọc toàn bộ danh sách sinh viên"""
-    sv = []
-    try:
-        with open(path, "r", encoding="utf8") as f:
-            for i in f:
-                data = i.strip()
-                if not data:
-                    continue
-                arr = data.split("-")
-                sv.append(arr)
-    except FileNotFoundError:
-        open(path, "w", encoding="utf8").close()  # nếu chưa có file thì tạo mới
-    except Exception as e:
-        print("Lỗi khi đọc file:", e)
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT MASOSV, HOVATEN, NGAYSINH, GIOITINH, DIACHI, SDT, MALOP FROM sinhvien")
+    sv = cursor.fetchall()  # trả về list các tuple [(masv, hoten), ...]
+    conn.close()
     return sv
 
 
 def overwrite(data_list):
-    """Ghi đè toàn bộ danh sách sinh viên"""
-    try:
-        with open(path, "w", encoding="utf8") as f:
-            for sv in data_list:
-                f.write("-".join(sv) + "\n")
-    except Exception as e:
-        print("Lỗi khi ghi đè:", e)
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM sinhvien")  # xoá hết bảng
+    sql = "INSERT INTO sinhvien (MaSV, HoTen) VALUES (%s, %s)"
+    cursor.executemany(sql, data_list)
+    conn.commit()
+    conn.close()
+
+def delete_student(masv):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM sinhvien WHERE MaSV=%s", (masv,))
+    conn.commit()
+    conn.close()
+
+def update_student(old_id, new_id, new_name):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE sinhvien SET MaSV=%s, HoTen=%s WHERE MaSV=%s", (new_id, new_name, old_id))
+    conn.commit()
+    conn.close()
