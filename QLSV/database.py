@@ -1,21 +1,37 @@
-path='D:\code\doan\QLSV.txt'
+﻿path = r"D:\code\doan\QLSV.txt"
+
 def save(line):
+    """Ghi thêm 1 dòng dữ liệu vào file"""
     try:
-        f=open(path,'a',encoding='utf8').write(line+'\n')
-        f.writelines(line+'\n')
-        f.close()
-    except :
-        pass
+        with open(path, "a", encoding="utf8") as f:
+            f.write(line + "\n")
+    except Exception as e:
+        print("Lỗi khi ghi file:", e)
+
+
 def read():
-    sv=[]
+    """Đọc toàn bộ danh sách sinh viên"""
+    sv = []
     try:
-        f=open(path,'r',encoding='utf8')
-        for i in f:
-            data = i.strip()
-            arr = data.split('-')
-            sv.append(arr)
-        f.close()
-    except:
-        pass
+        with open(path, "r", encoding="utf8") as f:
+            for i in f:
+                data = i.strip()
+                if not data:
+                    continue
+                arr = data.split("-")
+                sv.append(arr)
+    except FileNotFoundError:
+        open(path, "w", encoding="utf8").close()  # nếu chưa có file thì tạo mới
+    except Exception as e:
+        print("Lỗi khi đọc file:", e)
     return sv
- 
+
+
+def overwrite(data_list):
+    """Ghi đè toàn bộ danh sách sinh viên"""
+    try:
+        with open(path, "w", encoding="utf8") as f:
+            for sv in data_list:
+                f.write("-".join(sv) + "\n")
+    except Exception as e:
+        print("Lỗi khi ghi đè:", e)
