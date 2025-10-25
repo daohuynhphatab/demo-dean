@@ -1,93 +1,112 @@
-﻿from tkinter import *
-from tkinter import messagebox
-from database import *
+﻿from re import A
+import tkinter as tk
+from tkinter import messagebox, Listbox, Entry, Frame, Button, Label, W, E
+import mysql.connector
 
-root = Tk()
+# Kết nối đến cơ sở dữ liệu
+def connect_to_db():
+    try:
+        connection = mysql.connector.connect(
+            host='localhost',
+            user='root',  
+            password='123456', 
+            database='qlsv'
+        )
+        return connection
+    except Exception as e:
+        messagebox.showerror("Database Error", str(e))
+        return None
+
+# Hàm thêm sinh viên
+def add_student():
+    student_id = entry_id.get()
+    name = entry_name.get()
+    date = entry_date.get()
+    address = entry_address.get()
+    class_id = entry_classid.get()
+    
+     # Kiểm tra dữ liệu nhập vào
+    if not student_id or not name:
+        messagebox.showwarning("Input Error", "Vui lòng nhập đầy đủ thông tin")
+        return
+    
+    connection = connect_to_db()
+    if connection:
+        cursor = connection.cursor()
+        sql = "INSERT INTO sinhvien (id, name, date, address, classid ) VALUES (%s, %s, %s, %s, %s)"
+        values = (student_id, name, date, address, class_id)
+        cursor.execute(sql, values)
+        connection.commit()
+
+        # Hiển thị thông báo thành công
+        messagebox.showinfo("Success", f"Thêm sinh viên {name} thành công")
+        
+        cursor.close()
+        connection.close()
+        
+        # Thêm vào listbox
+        listbox.insert(tk.END, f"{student_id} - {name}")
+
+        # Xóa trường nhập
+        entry_id.delete(0, tk.END)
+        entry_name.delete(0, tk.END)
+
+
+# Tạo cửa sổ chính
+root = tk.Tk()
 root.title("Quản Lý Sinh Viên")
-root.minsize(500, 500)
 
-# --- VAR ---
-svid = StringVar()
-name = StringVar()
-
-# --- FUNCTION ---
-def show():
-    listbox.delete(0, END)
-    sv = read()
-    for i in sv:
-        listbox.insert(END, f"{i[0]} - {i[1]}")
-
-def add():
-    ma = svid.get().strip()
-    ten = name.get().strip()
-    if not ma or not ten:
-        messagebox.showwarning("Thiếu thông tin", "Vui lòng nhập đầy đủ Mã SV và Họ Tên!")
-        return
-    save(f"{ma}-{ten}")
-    show()
-    clear_form()
-
-def delete():
-    selected = listbox.curselection()
-    if not selected:
-        messagebox.showinfo("Chọn dòng", "Vui lòng chọn sinh viên cần xóa.")
-        return
-    index = selected[0]
-    sv = read()
-    del sv[index]
-    overwrite(sv)
-    show()
-    clear_form()
-
-def edit():
-    selected = listbox.curselection()
-    if not selected:
-        messagebox.showinfo("Chọn dòng", "Vui lòng chọn sinh viên cần sửa.")
-        return
-    index = selected[0]
-    sv = read()
-    ma = svid.get().strip()
-    ten = name.get().strip()
-    if not ma or not ten:
-        messagebox.showwarning("Thiếu thông tin", "Nhập mã và tên mới để cập nhật.")
-        return
-    sv[index] = [ma, ten]
-    overwrite(sv)
-    show()
-    clear_form()
-
-def clear_form():
-    svid.set("")
-    name.set("")
-
-def select_item(event):
-    selected = listbox.curselection()
-    if selected:
-        index = selected[0]
-        sv = read()
-        svid.set(sv[index][0])
-        name.set(sv[index][1])
-
-# --- UI ---
+# Tiêu đề
 Label(root, text="Quản Lý Sinh Viên", font=("Arial", 24)).grid(row=0, columnspan=2, pady=10)
 
+# Danh sách sinh viên
 listbox = Listbox(root, width=80, height=20)
 listbox.grid(row=1, columnspan=2)
-listbox.bind("<<ListboxSelect>>", select_item)
 
+# Trường nhập Mã sinh viên
 Label(root, text="Mã sinh viên:").grid(row=2, column=0, sticky=W, padx=10)
-Entry(root, textvariable=svid, width=30).grid(row=2, column=1, sticky=W)
+entry_id = Entry(root,  width=30)
+entry_id.grid(row=2, column=1, sticky=W)
 
+# Trường nhập Họ và tên
 Label(root, text="Họ và tên:").grid(row=3, column=0, sticky=W, padx=10)
-Entry(root, textvariable=name, width=30).grid(row=3, column=1, sticky=W)
+entry_name = Entry(root,  width=30)
+entry_name.grid(row=3, column=1, sticky=W)
 
+# Trường nhập năm sinh
+Label(root, text="Năm sinh:").grid(row=4, column=0, sticky=W, padx=10)
+entry_date = Entry(root,  width=30)
+entry_date.grid(row=4, column=1, sticky=W)
+
+# Trường nhập địa chỉ
+Label(root, text="Địa chỉ:").grid(row=5, column=0, sticky=W, padx=10)
+entry_address = Entry(root,  width=30)
+entry_address.grid(row=5, column=1, sticky=W)
+
+# Trường nhập mã lớp
+Label(root, text="Mã lớp học:").grid(row=6, column=0, sticky=W, padx=10)
+entry_classid = Entry(root,  width=30)
+entry_classid.grid(row=6, column=1, sticky=W)
+
+
+# Khung chứa nút
 frame_btn = Frame(root)
 frame_btn.grid(row=4, column=1, pady=15, sticky=E)
 
-Button(frame_btn, text="Thêm", command=add, width=10).pack(side=LEFT, padx=5)
-Button(frame_btn, text="Xóa", command=delete, width=10).pack(side=LEFT, padx=5)
-Button(frame_btn, text="Sửa", command=edit, width=10).pack(side=LEFT, padx=5)
-Button(frame_btn, text="Thoát", command=root.quit, width=10).pack(side=LEFT, padx=5)
+# Nút thêm
+Button(frame_btn, text="Thêm", command=add_student, width=10).pack(side='left', padx=5)
 
-show()
+# Nút xóa (chưa có code)
+Button(frame_btn, text="Xóa", width=10).pack(side='left', padx=5)
+
+# Nút sửa (chưa có code)
+Button(frame_btn, text="Sửa", width=10).pack(side='left', padx=5)
+
+# Nút chụp ảnh (chưa có code)
+#Button(frame_btn, text="Camera", width=10).pack(side='left', padx=5)
+
+# Nút thoát
+Button(frame_btn, text="Thoát", command=root.quit, width=10).pack(side='left', padx=5)
+
+# Chạy ứng dụng
 root.mainloop()

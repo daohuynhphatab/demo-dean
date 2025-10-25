@@ -21,6 +21,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="connect.py" />
     <Compile Include="database.py" />
     <Compile Include="QLSV.py" />
   </ItemGroup>
