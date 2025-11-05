@@ -21,8 +21,10 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="connect.py" />
+    <Compile Include="KHOA.py" />
     <Compile Include="database.py" />
+    <Compile Include="LOP.py" />
+    <Compile Include="main.py" />
     <Compile Include="QLSV.py" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
