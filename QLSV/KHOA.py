@@ -1,89 +1,129 @@
-﻿from database import connect_to_db
-import tkinter as tk
-from tkinter import messagebox
+﻿import customtkinter as ctk
+from tkinter import messagebox, END
 
-def open_department_management():
 
- def add_department(entry_department_id, entry_department_name, department_listbox):
-    department_id = entry_department_id.get()
-    department_name = entry_department_name.get()
-    
-    if not department_id or not department_name:
-        messagebox.showwarning("Input Error", "Vui lòng nhập đầy đủ thông tin về khoa")
-        return
+class FacultyManagerFrame(ctk.CTkFrame):
+    def __init__(self, parent):
+        super().__init__(parent)
 
-    connection = connect_to_db()
-    if connection:
+        # === Tiêu đề ===
+        title = ctk.CTkLabel(self, text="Quản lý khoa", font=ctk.CTkFont(size=20, weight="bold"))
+        title.grid(row=0, column=0, columnspan=2, pady=10)
+
+        # === Form nhập thông tin khoa ===
+        form_frame = ctk.CTkFrame(self)
+        form_frame.grid(row=1, column=0, padx=20, pady=10, sticky="nw")
+
+        ctk.CTkLabel(form_frame, text="Mã khoa:").grid(row=0, column=0, sticky="w", pady=2)
+        ctk.CTkLabel(form_frame, text="Tên khoa:").grid(row=1, column=0, sticky="w", pady=2)
+        ctk.CTkLabel(form_frame, text="Trưởng khoa:").grid(row=2, column=0, sticky="w", pady=2)
+        ctk.CTkLabel(form_frame, text="Số điện thoại:").grid(row=3, column=0, sticky="w", pady=2)
+
+        self.entry_id = ctk.CTkEntry(form_frame, width=200)
+        self.entry_name = ctk.CTkEntry(form_frame, width=200)
+        self.entry_head = ctk.CTkEntry(form_frame, width=200)
+        self.entry_phone = ctk.CTkEntry(form_frame, width=200)
+
+        self.entry_id.grid(row=0, column=1, pady=2)
+        self.entry_name.grid(row=1, column=1, pady=2)
+        self.entry_head.grid(row=2, column=1, pady=2)
+        self.entry_phone.grid(row=3, column=1, pady=2)
+
+        # === Nút chức năng ===
+        btn_frame = ctk.CTkFrame(form_frame)
+        btn_frame.grid(row=4, column=0, columnspan=2, pady=10)
+
+        ctk.CTkButton(btn_frame, text="Thêm", command=self.add_faculty).grid(row=0, column=0, padx=5)
+        ctk.CTkButton(btn_frame, text="Sửa", command=self.update_faculty).grid(row=0, column=1, padx=5)
+        ctk.CTkButton(btn_frame, text="Xóa", command=self.delete_faculty).grid(row=0, column=2, padx=5)
+        ctk.CTkButton(btn_frame, text="Xóa hết", fg_color="red", command=self.clear_all).grid(row=0, column=3, padx=5)
+
+        # === Danh sách khoa ===
+        list_frame = ctk.CTkFrame(self)
+        list_frame.grid(row=1, column=1, padx=20, pady=10, sticky="nsew")
+
+        self.listbox = ctk.CTkTextbox(list_frame, width=450, height=350)
+        self.listbox.grid(row=0, column=0, padx=10, pady=10)
+
+        # Dữ liệu khoa (demo)
+        self.faculties = []
+
+        self.listbox.bind("<ButtonRelease-1>", self.select_faculty)
+
+    # === Các hàm xử lý ===
+    def refresh_list(self):
+        self.listbox.delete("1.0", END)
+        for i, f in enumerate(self.faculties, start=1):
+            self.listbox.insert(
+                END,
+                f"{i}. {f['id']} - {f['name']} | Trưởng khoa: {f['head']} | ĐT: {f['phone']}\n"
+            )
+
+    def add_faculty(self):
+        fid = self.entry_id.get().strip()
+        name = self.entry_name.get().strip()
+        head = self.entry_head.get().strip()
+        phone = self.entry_phone.get().strip()
+
+        if not fid or not name:
+            messagebox.showwarning("Thiếu dữ liệu", "Vui lòng nhập Mã khoa và Tên khoa!")
+            return
+
+        self.faculties.append({
+            "id": fid,
+            "name": name,
+            "head": head,
+            "phone": phone
+        })
+        self.refresh_list()
+        self.clear_form()
+
+    def select_faculty(self, event=None):
         try:
-            cursor = connection.cursor()
-            sql = "INSERT INTO khoa (makhoa, tenkhoa) VALUES (%s, %s)"
-            cursor.execute(sql, (department_id, department_name))
-            connection.commit()
-            messagebox.showinfo("Success", f"Thêm khoa {department_name} thành công")
-            department_listbox.insert(tk.END, f"{department_id} - {department_name}")
-            clear_department_entries(entry_department_id, entry_department_name)
-        except Exception as e:
-            messagebox.showerror("Database Error", "Failed to add department: " + str(e))
-        finally:
-            cursor.close()
-            connection.close()
+            index = int(self.listbox.index("insert").split('.')[0]) - 1
+            f = self.faculties[index]
+            self.entry_id.delete(0, END)
+            self.entry_name.delete(0, END)
+            self.entry_head.delete(0, END)
+            self.entry_phone.delete(0, END)
 
- def edit_department(department_listbox, entry_department_id, entry_department_name):
-    selected = department_listbox.curselection()
-    if not selected:
-        messagebox.showwarning("Select Error", "Vui lòng chọn khoa để sửa")
-        return
+            self.entry_id.insert(0, f["id"])
+            self.entry_name.insert(0, f["name"])
+            self.entry_head.insert(0, f["head"])
+            self.entry_phone.insert(0, f["phone"])
+        except:
+            pass
 
-    department_item = department_listbox.get(selected)
-    department_id = department_item.split(" - ")[0]
-    
-    department_name = entry_department_name.get()
+    def update_faculty(self):
+        fid = self.entry_id.get().strip()
+        for f in self.faculties:
+            if f["id"] == fid:
+                f["name"] = self.entry_name.get().strip()
+                f["head"] = self.entry_head.get().strip()
+                f["phone"] = self.entry_phone.get().strip()
+                self.refresh_list()
+                messagebox.showinfo("Thành công", "Đã cập nhật thông tin khoa!")
+                return
+        messagebox.showerror("Lỗi", "Không tìm thấy khoa để sửa!")
 
-    if not department_name:
-        messagebox.showwarning("Input Error", "Vui lòng nhập tên khoa để sửa")
-        return
+    def delete_faculty(self):
+        fid = self.entry_id.get().strip()
+        before = len(self.faculties)
+        self.faculties = [f for f in self.faculties if f["id"] != fid]
+        after = len(self.faculties)
+        if before == after:
+            messagebox.showerror("Lỗi", "Không tìm thấy khoa để xóa!")
+        else:
+            self.refresh_list()
+            self.clear_form()
+            messagebox.showinfo("Thành công", "Đã xóa khoa!")
 
-    connection = connect_to_db()
-    if connection:
-        try:
-            cursor = connection.cursor()
-            sql = "UPDATE khoa SET tentkhoa = %s WHERE makhoa = %s"
-            cursor.execute(sql, (department_name, department_id))
-            connection.commit()
-            messagebox.showinfo("Success", f"Sửa khoa {department_id} thành công")
-            department_listbox.delete(selected)
-            department_listbox.insert(selected, f"{department_id} - {department_name}")
-            clear_department_entries(entry_department_id, entry_department_name)
-        except Exception as e:
-            messagebox.showerror("Database Error", "Failed to edit department: " + str(e))
-        finally:
-            cursor.close()
-            connection.close()
+    def clear_all(self):
+        if messagebox.askyesno("Xác nhận", "Bạn có chắc muốn xóa toàn bộ danh sách khoa?"):
+            self.faculties.clear()
+            self.refresh_list()
+            self.clear_form()
 
- def delete_department(department_listbox):
-    selected = department_listbox.curselection()
-    if not selected:
-        messagebox.showwarning("Select Error", "Vui lòng chọn khoa để xóa")
-        return
-
-    department_item = department_listbox.get(selected)
-    department_id = department_item.split(" - ")[0]
-
-    connection = connect_to_db()
-    if connection:
-        try:
-            cursor = connection.cursor()
-            sql = "DELETE FROM khoa WHERE makhoa = %s"
-            cursor.execute(sql, (department_id,))
-            connection.commit()
-            messagebox.showinfo("Success", f"Xóa khoa {department_id} thành công")
-            department_listbox.delete(selected)
-        except Exception as e:
-            messagebox.showerror("Database Error", "Failed to delete department: " + str(e))
-        finally:
-            cursor.close()
-            connection.close()
-
- def clear_department_entries(entry_department_id, entry_department_name):
-    entry_department_id.delete(0, tk.END)
-    entry_department_name.delete(0, tk.END)
+    def clear_form(self):
+        for entry in (self.entry_id, self.entry_name, self.entry_head, self.entry_phone):
+            entry.delete(0, END)
