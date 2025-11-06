@@ -40,10 +40,10 @@ class FacultyManagerFrame(ctk.CTkFrame):
 
         # === Danh sách khoa ===
         list_frame = ctk.CTkFrame(self)
-        list_frame.grid(row=1, column=1, padx=20, pady=10, sticky="nsew")
+        list_frame.grid(row=2, column=0, padx=20, pady=10, sticky="nsew")
 
-        self.listbox = ctk.CTkTextbox(list_frame, width=450, height=350)
-        self.listbox.grid(row=0, column=0, padx=10, pady=10)
+        self.listbox = ctk.CTkTextbox(list_frame, width=600, height=350)
+        self.listbox.grid(row=1, column=2, padx=10, pady=10, sticky="nsew")
 
         # Dữ liệu khoa (demo)
         self.faculties = []

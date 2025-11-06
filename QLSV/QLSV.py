@@ -8,7 +8,7 @@ ctk.set_appearance_mode("System")  # or "Dark" / "Light"
 ctk.set_default_color_theme("blue")
 
 APP_TITLE = "Quản Lý Sinh Viên"
-WINDOW_SIZE = "1000x650"
+WINDOW_SIZE = "850x650"
 
 
 class MainApp(ctk.CTk):
