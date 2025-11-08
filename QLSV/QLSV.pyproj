@@ -23,6 +23,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="face_dataset.py" />
     <Compile Include="KHOA.py" />
     <Compile Include="database.py" />
     <Compile Include="LOP.py" />
