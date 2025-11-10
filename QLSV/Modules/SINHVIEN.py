@@ -1,6 +1,7 @@
 ﻿import customtkinter as ctk
+import tkinter.ttk as ttk
 from tkinter import messagebox, END
-from database import get_connection
+from Modules.database import get_connection
 
 
 class StudentManagerFrame(ctk.CTkFrame):
@@ -11,9 +12,19 @@ class StudentManagerFrame(ctk.CTkFrame):
         title = ctk.CTkLabel(self, text="Quản lý sinh viên", font=ctk.CTkFont(size=20, weight="bold"))
         title.grid(row=0, column=0, columnspan=2, pady=10)
 
+        # === Frame tổng chứa form + bảng ===
+        content_frame = ctk.CTkFrame(self)
+        content_frame.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
+        content_frame.grid_columnconfigure(0, weight=1)
+        content_frame.grid_rowconfigure(1, weight=1)
+
+        # === Form nhập + ảnh ===
+        top_frame = ctk.CTkFrame(content_frame)
+        top_frame.grid(row=0, column=0, sticky="nw", pady=(0,10))
+
         # === Form nhập thông tin ===
-        form_frame = ctk.CTkFrame(self)
-        form_frame.grid(row=1, column=0, padx=20, pady=10, sticky="nw")
+        form_frame = ctk.CTkFrame(top_frame)
+        form_frame.grid(row=0, column=0, padx=(0,20), sticky="nw")
 
         ctk.CTkLabel(form_frame, text="Mã SV:").grid(row=0, column=0, sticky="w", pady=2)
         ctk.CTkLabel(form_frame, text="Họ tên:").grid(row=1, column=0, sticky="w", pady=2)
@@ -30,46 +41,111 @@ class StudentManagerFrame(ctk.CTkFrame):
         self.entry_class.grid(row=2, column=1, pady=2)
         self.entry_faculty.grid(row=3, column=1, pady=2)
 
+        # Frame ảnh sinh viên
+        img_frame = ctk.CTkFrame(top_frame)
+        img_frame.grid(row=0, column=1, padx=10, sticky="ne")
+
+        self.photo_label = ctk.CTkLabel(img_frame, text="(Chưa có ảnh)", width=120, height=120, fg_color="#3a3a3a")
+        self.photo_label.grid(row=0, column=0, pady=5)
+
         # === Nút chức năng ===
         btn_frame = ctk.CTkFrame(form_frame)
         btn_frame.grid(row=4, column=0, columnspan=2, pady=10)
 
-        ctk.CTkButton(btn_frame, text="Thêm", command=self.add_student).grid(row=0, column=0, padx=5)
-        ctk.CTkButton(btn_frame, text="Sửa", command=self.update_student).grid(row=0, column=1, padx=5)
-        ctk.CTkButton(btn_frame, text="Xóa", command=self.delete_student).grid(row=0, column=2, padx=5)
-        ctk.CTkButton(btn_frame, text="Làm mới", fg_color="gray", command=self.load_students).grid(row=0, column=3, padx=5)
+        ctk.CTkButton(btn_frame, text="Thêm", command=self.add_student).grid(row=0, column=1, padx=5)
+        ctk.CTkButton(btn_frame, text="Sửa", command=self.update_student).grid(row=0, column=2, padx=5)
+        ctk.CTkButton(btn_frame, text="Xóa", command=self.delete_student).grid(row=0, column=3, padx=5)
+        ctk.CTkButton(img_frame, text="Chọn ảnh" ).grid(row=1, column=0, pady=5)
 
         # === Bảng hiển thị danh sách sinh viên ===
-        list_frame = ctk.CTkFrame(self)
-        list_frame.grid(row=2, column=0, padx=20, pady=10, sticky="nsew")
+        table_frame = ctk.CTkFrame(content_frame)
+        table_frame.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
+        table_frame.grid_rowconfigure(0, weight=1)
+        table_frame.grid_columnconfigure(0, weight=1)
 
-        self.listbox = ctk.CTkTextbox(list_frame, width=600, height=350)
-        self.listbox.grid(row=1, column=2, padx=10, pady=10, sticky="nsew")
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure("Treeview",
+                        background="#2b2b2b",
+                        foreground="white",
+                        font=("Segoe UI", 18),
+                        rowheight=50,
+                        fieldbackground="#2b2b2b"
+                        )
+        style.configure("Treeview.Heading",
+                        background="#1f538d",
+                        foreground="white",
+                        font=("Segoe UI", 18, "bold")
+                        )
+        style.map('Treeview', background=[('selected', '#1f538d')])
 
-        # Khi chọn dòng trong listbox
-        self.listbox.bind("<ButtonRelease-1>", self.select_student)
+        self.tree = ttk.Treeview(
+            table_frame,
+            columns=("masv", "hoten", "malop", "khoa"),
+            show="headings",
+            selectmode="browse"
+        )
+        self.tree.heading("masv", text="Mã SV")
+        self.tree.heading("hoten", text="Họ tên")
+        self.tree.heading("malop", text="Mã lớp")
+        self.tree.heading("khoa", text="Khoa")
+
+        self.tree.column("masv", width=100, anchor="center")
+        self.tree.column("hoten", width=200)
+        self.tree.column("malop", width=100, anchor="center")
+        self.tree.column("khoa", width=100, anchor="center")
+
+        self.tree.grid(row=0, column=0, sticky="nsew")
+
+        # Scrollbar dọc
+        scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscroll=scrollbar.set)
+        scrollbar.grid(row=0, column=1, sticky="ns")
 
         # Tải dữ liệu ban đầu
         self.load_students()
 
+        self.tree.bind("<<TreeviewSelect>>", self.select_class)
+
+
     # === Tải danh sách sinh viên ===
     def load_students(self):
+        """Tải danh sách sinh viên từ DB vào cache self.students rồi refresh GUI."""
         conn = get_connection()
         if not conn:
             return
-
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM sinhvien")
-        self.students = cursor.fetchall()
-        conn.close()
-
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT id, name, faculty, classid FROM sinhvien ORDER BY id")
+            rows = cursor.fetchall()
+            self.students = rows
+            cursor.close()
+        except Exception as e:
+            messagebox.showerror("Lỗi", f"Lỗi khi tải danh sách sinh viên:\n{e}")
+            self.students = []
+        finally:
+            try:
+                conn.close()
+            except:
+                pass
+    
         self.refresh_list()
 
-    # === Cập nhật listbox ===
+
     def refresh_list(self):
-        self.listbox.delete("1.0", END)
-        for i, sv in enumerate(self.students, start=1):
-            self.listbox.insert(END, f"{i}. {sv['id']} - {sv['name']} | {sv['classid']} | {sv['faculty']}\n")
+        """Hiển thị self.students lên Treeview."""
+    # Xóa dữ liệu cũ
+        self.tree.delete(*self.tree.get_children())
+
+    # Chèn lại dữ liệu mới
+        for i, c in enumerate(self.students, start=1):
+            self.tree.insert("", "end", values=(
+                c["id"],
+                c["name"],
+                c["faculty"],
+                c["classid"]
+            ))
+
 
     # === Thêm sinh viên ===
     def add_student(self):
@@ -164,23 +240,35 @@ class StudentManagerFrame(ctk.CTkFrame):
             conn.close()
 
     # === Khi click chọn sinh viên trong list ===
-    def select_student(self, event=None):
+    def select_class(self, event=None):
         try:
-            line = self.listbox.get("insert linestart", "insert lineend")
-            sid = line.split(".")[1].split("-")[0].strip()
-            sv = next((s for s in self.students if s["id"] == sid), None)
-            if sv:
-                self.entry_id.delete(0, END)
-                self.entry_name.delete(0, END)
-                self.entry_class.delete(0, END)
-                self.entry_faculty.delete(0, END)
-                self.entry_id.insert(0, sv["id"])
-                self.entry_name.insert(0, sv["name"])
-                self.entry_class.insert(0, sv["classid"])
-                self.entry_faculty.insert(0, sv["faculty"])
-        except Exception:
-            pass
+            selected_item = self.tree.selection()
+            if not selected_item:
+                return
+
+            item_values = self.tree.item(selected_item, "values")
+
+            # Thứ tự cột: (masv, hoten, malop, khoa)
+            masv, hoten, malop, khoa = item_values
+
+            self.entry_id.delete(0, END)
+            self.entry_id.insert(0, masv)
+
+            self.entry_name.delete(0, END)
+            self.entry_name.insert(0, hoten)
+
+            self.entry_class.delete(0, END)
+            self.entry_class.insert(0, malop)
+
+            self.entry_faculty.delete(0, END)
+            self.entry_faculty.insert(0, khoa)
+
+        except Exception as e:
+            print("Lỗi khi chọn sinh viên:", e)
+
+
 
     def clear_form(self):
         for entry in (self.entry_id, self.entry_name, self.entry_class, self.entry_faculty):
             entry.delete(0, END)
+

@@ -1,4 +1,4 @@
-﻿# database.py
+﻿ #database.py
 import mysql.connector
 import customtkinter as ctk
 def get_connection():

@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7d36606a-77a3-4b36-9c14-c168554d018f</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>QLSV.py</StartupFile>
+    <StartupFile>main.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -23,12 +23,13 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="face_dataset.py" />
-    <Compile Include="KHOA.py" />
-    <Compile Include="database.py" />
-    <Compile Include="LOP.py" />
-    <Compile Include="SINHVIEN.py" />
-    <Compile Include="QLSV.py" />
+    <Compile Include="main.py" />
+    <Compile Include="Modules\database.py" />
+    <Compile Include="Modules\face_dataset.py" />
+    <Compile Include="Modules\KHOA.py" />
+    <Compile Include="Modules\LOP.py" />
+    <Compile Include="Modules\SINHVIEN.py" />
+    <Compile Include="Modules\__init__.py" />
   </ItemGroup>
   <ItemGroup>
     <Interpreter Include="env\">
@@ -44,6 +45,18 @@
   <ItemGroup>
     <InterpreterReference Include="Global|PythonCore|3.12" />
     <InterpreterReference Include="Global|PythonCore|3.14" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Modules\" />
+    <Folder Include="Modules\__pycache__\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Modules\__pycache__\database.cpython-312.pyc" />
+    <Content Include="Modules\__pycache__\face_dataset.cpython-312.pyc" />
+    <Content Include="Modules\__pycache__\KHOA.cpython-312.pyc" />
+    <Content Include="Modules\__pycache__\LOP.cpython-312.pyc" />
+    <Content Include="Modules\__pycache__\SINHVIEN.cpython-312.pyc" />
+    <Content Include="Modules\__pycache__\__init__.cpython-312.pyc" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
