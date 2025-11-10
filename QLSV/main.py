@@ -1,5 +1,4 @@
 ﻿import customtkinter as ctk
-
 from Modules.SINHVIEN import StudentManagerFrame
 from Modules.LOP import ClassManagerFrame
 from Modules.KHOA import FacultyManagerFrame
