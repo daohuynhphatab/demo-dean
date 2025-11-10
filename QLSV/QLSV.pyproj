@@ -49,6 +49,7 @@
   <ItemGroup>
     <Folder Include="Modules\" />
     <Folder Include="Modules\__pycache__\" />
+    <Folder Include="face\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Modules\__pycache__\database.cpython-312.pyc" />

@@ -1,12 +1,20 @@
 ﻿import customtkinter as ctk
 import tkinter.ttk as ttk
-from tkinter import messagebox, END
+from tkinter import messagebox, END, filedialog
+from PIL import Image, ImageTk 
 from Modules.database import get_connection
-
+import os 
 
 class StudentManagerFrame(ctk.CTkFrame):
     def __init__(self, parent):
         super().__init__(parent)
+
+        self.selected_image_path = None #Lưu đường dẫn ảnh đã chọn
+        self.photo_tk = None # Tham chiếu ảnh
+
+        self.face_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'face') #Xác định thư mục 'face'
+        if not os.path.exists(self.face_dir):
+            os.makedirs(self.face_dir, exist_ok=True) #Tạo thư mục nếu chưa tồn tại
 
         # === Tiêu đề ===
         title = ctk.CTkLabel(self, text="Quản lý sinh viên", font=ctk.CTkFont(size=20, weight="bold"))
@@ -55,7 +63,7 @@ class StudentManagerFrame(ctk.CTkFrame):
         ctk.CTkButton(btn_frame, text="Thêm", command=self.add_student).grid(row=0, column=1, padx=5)
         ctk.CTkButton(btn_frame, text="Sửa", command=self.update_student).grid(row=0, column=2, padx=5)
         ctk.CTkButton(btn_frame, text="Xóa", command=self.delete_student).grid(row=0, column=3, padx=5)
-        ctk.CTkButton(img_frame, text="Chọn ảnh" ).grid(row=1, column=0, pady=5)
+        ctk.CTkButton(img_frame, text="Chọn ảnh", command=self.select_image).grid(row=1, column=0, pady=5)
 
         # === Bảng hiển thị danh sách sinh viên ===
         table_frame = ctk.CTkFrame(content_frame)
@@ -81,7 +89,7 @@ class StudentManagerFrame(ctk.CTkFrame):
 
         self.tree = ttk.Treeview(
             table_frame,
-            columns=("masv", "hoten", "malop", "khoa"),
+            columns=("masv", "hoten", "malop", "khoa", "image_link"), 
             show="headings",
             selectmode="browse"
         )
@@ -89,11 +97,13 @@ class StudentManagerFrame(ctk.CTkFrame):
         self.tree.heading("hoten", text="Họ tên")
         self.tree.heading("malop", text="Mã lớp")
         self.tree.heading("khoa", text="Khoa")
+        self.tree.heading("image_link", text="Đường dẫn ảnh") 
 
         self.tree.column("masv", width=100, anchor="center")
         self.tree.column("hoten", width=200)
         self.tree.column("malop", width=100, anchor="center")
         self.tree.column("khoa", width=100, anchor="center")
+        self.tree.column("image_link", width=0, stretch=False)
 
         self.tree.grid(row=0, column=0, sticky="nsew")
 
@@ -116,7 +126,8 @@ class StudentManagerFrame(ctk.CTkFrame):
             return
         try:
             cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT id, name, faculty, classid FROM sinhvien ORDER BY id")
+            
+            cursor.execute("SELECT id, name, faculty, classid, image_link FROM sinhvien ORDER BY id") 
             rows = cursor.fetchall()
             self.students = rows
             cursor.close()
@@ -128,22 +139,22 @@ class StudentManagerFrame(ctk.CTkFrame):
                 conn.close()
             except:
                 pass
-    
+        
         self.refresh_list()
 
 
     def refresh_list(self):
         """Hiển thị self.students lên Treeview."""
-    # Xóa dữ liệu cũ
         self.tree.delete(*self.tree.get_children())
 
-    # Chèn lại dữ liệu mới
+        
         for i, c in enumerate(self.students, start=1):
             self.tree.insert("", "end", values=(
-                c["id"],
-                c["name"],
-                c["faculty"],
-                c["classid"]
+                c["id"],        
+                c["name"],     
+                c["classid"],  
+                c["faculty"],   
+                c["image_link"] 
             ))
 
 
@@ -151,8 +162,10 @@ class StudentManagerFrame(ctk.CTkFrame):
     def add_student(self):
         sid = self.entry_id.get().strip()
         name = self.entry_name.get().strip()
-        sclass = self.entry_class.get().strip()
-        faculty = self.entry_faculty.get().strip()
+        sclass = self.entry_class.get().strip() 
+        faculty = self.entry_faculty.get().strip() 
+        image_link = self.selected_image_path if self.selected_image_path else "" 
+        
 
         if not sid or not name or not sclass or not faculty:
             messagebox.showwarning("Thiếu dữ liệu", "Vui lòng nhập đầy đủ thông tin!")
@@ -164,9 +177,10 @@ class StudentManagerFrame(ctk.CTkFrame):
 
         cursor = conn.cursor()
         try:
+            
             cursor.execute(
-                "INSERT INTO sinhvien (id, name, classid, faculty) VALUES (%s, %s, %s, %s)",
-                (sid, name, sclass, faculty)
+                "INSERT INTO sinhvien (id, name, faculty, classid, image_link) VALUES (%s, %s, %s, %s, %s)",
+                (sid, name, faculty, sclass, image_link)
             )
             conn.commit()
             messagebox.showinfo("Thành công", "Đã thêm sinh viên!")
@@ -181,8 +195,10 @@ class StudentManagerFrame(ctk.CTkFrame):
     def update_student(self):
         sid = self.entry_id.get().strip()
         name = self.entry_name.get().strip()
-        sclass = self.entry_class.get().strip()
-        faculty = self.entry_faculty.get().strip()
+        sclass = self.entry_class.get().strip() 
+        faculty = self.entry_faculty.get().strip() 
+
+        img_path = self.selected_image_path if self.selected_image_path else "" 
 
         if not sid:
             messagebox.showwarning("Thiếu dữ liệu", "Vui lòng chọn sinh viên cần sửa!")
@@ -200,9 +216,10 @@ class StudentManagerFrame(ctk.CTkFrame):
             return
 
         try:
+            
             cursor.execute(
-                "UPDATE sinhvien SET name=%s, classid=%s, faculty=%s WHERE id=%s",
-                (name, sclass, faculty, sid)
+                "UPDATE sinhvien SET name=%s, faculty=%s, classid=%s, image_link=%s WHERE id=%s",
+                (name, faculty, sclass, img_path, sid)
             )
             conn.commit()
             messagebox.showinfo("Thành công", "Đã cập nhật sinh viên!")
@@ -212,6 +229,7 @@ class StudentManagerFrame(ctk.CTkFrame):
             messagebox.showerror("Lỗi", f"Không thể cập nhật: {e}")
         finally:
             conn.close()
+
 
     # === Xóa sinh viên ===
     def delete_student(self):
@@ -248,8 +266,7 @@ class StudentManagerFrame(ctk.CTkFrame):
 
             item_values = self.tree.item(selected_item, "values")
 
-            # Thứ tự cột: (masv, hoten, malop, khoa)
-            masv, hoten, malop, khoa = item_values
+            masv, hoten, malop, khoa, image_link = item_values
 
             self.entry_id.delete(0, END)
             self.entry_id.insert(0, masv)
@@ -263,12 +280,73 @@ class StudentManagerFrame(ctk.CTkFrame):
             self.entry_faculty.delete(0, END)
             self.entry_faculty.insert(0, khoa)
 
-        except Exception as e:
-            print("Lỗi khi chọn sinh viên:", e)
+            img_path = image_link
+            
+            # Hiển thị ảnh nếu có 
+            if img_path:
+                self.display_image(img_path) 
+            else:
+                self.clear_image()
 
+        except Exception as e:
+            messagebox.showerror("Lỗi", f"Lỗi khi chọn sinh viên:\n{e}")
+            self.clear_image()
 
 
     def clear_form(self):
         for entry in (self.entry_id, self.entry_name, self.entry_class, self.entry_faculty):
             entry.delete(0, END)
+        self.clear_image() 
 
+    # === Chọn ảnh đại diện ===
+    def select_image(self):
+        """Mở hộp thoại chọn file ảnh, bắt đầu từ thư mục 'face'."""
+        file_path = filedialog.askopenfilename(
+            title="Chọn ảnh",
+            initialdir=self.face_dir, 
+            filetypes=[("Image files", "*.png *.jpg *.jpeg")]
+        )
+        if file_path:
+            self.selected_image_path = file_path
+            
+            # Tải ảnh, resize, và chuyển thành CTkImage
+            try:
+                img = Image.open(file_path)
+                img = img.resize((120, 120), Image.LANCZOS) 
+                
+                # Sử dụng ctk.CTkImage để tránh cảnh báo HighDPI
+                self.photo_tk = ctk.CTkImage(light_image=img, dark_image=img, size=(120, 120))
+                
+                self.photo_label.configure(image=self.photo_tk, text="")
+                self.photo_label.image = self.photo_tk 
+                
+            except Exception as e:
+                messagebox.showerror("Lỗi Ảnh", f"Không thể tải hoặc hiển thị ảnh:\n{e}")
+                self.selected_image_path = None
+
+# Các hàm mới để chuẩn hóa việc tải, resize, và hiển thị ảnh bằng ctk.CTkImage.
+
+    def display_image(self, file_path):
+        """Tải và hiển thị ảnh lên photo_label."""
+        if os.path.exists(file_path):
+            try:
+                img = Image.open(file_path)
+                img = img.resize((120, 120), Image.LANCZOS)
+                
+                # Sử dụng ctk.CTkImage
+                self.photo_tk = ctk.CTkImage(light_image=img, dark_image=img, size=(120, 120))
+                
+                self.photo_label.configure(image=self.photo_tk, text="")
+                self.photo_label.image = self.photo_tk 
+                self.selected_image_path = file_path 
+            except Exception as e:
+                self.clear_image()
+                print(f"Lỗi tải ảnh: {e}")
+        else:
+            self.clear_image()
+
+    def clear_image(self):
+        """Xóa ảnh trên photo_label."""
+        self.photo_label.configure(image="", text="(Chưa có ảnh)")
+        self.photo_tk = None
+        self.selected_image_path = None

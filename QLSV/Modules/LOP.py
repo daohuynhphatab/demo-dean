@@ -1,12 +1,23 @@
 ﻿import customtkinter as ctk
 import tkinter.ttk as ttk
-from tkinter import messagebox, END
+from tkinter import messagebox, END, filedialog 
+from PIL import Image 
 from Modules.database import get_connection
+import os 
 
 
 class ClassManagerFrame(ctk.CTkFrame):
     def __init__(self, parent):
         super().__init__(parent)
+
+        # Biến lưu trữ đường dẫn ảnh và tham chiếu ảnh
+        self.selected_image_path = None
+        self.photo_tk = None # Biến giữ tham chiếu ảnh ctk.CTkImage
+
+        # Khởi tạo đường dẫn thư mục 'face' và đảm bảo nó tồn tại
+        self.face_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'face') 
+        if not os.path.exists(self.face_dir):
+            os.makedirs(self.face_dir, exist_ok=True)
 
         # === Tiêu đề ===
         title = ctk.CTkLabel(self, text="Quản lý lớp", font=ctk.CTkFont(size=20, weight="bold"))
@@ -41,14 +52,14 @@ class ClassManagerFrame(ctk.CTkFrame):
         self.entry_makhoa.grid(row=2, column=1, pady=2)
         self.entry_cvht.grid(row=3, column=1, pady=2)
 
-        # Frame ảnh đại diện (nếu có)
+        # Frame ảnh đại diện
         img_frame = ctk.CTkFrame(top_frame)
         img_frame.grid(row=0, column=2, padx=10, sticky="ne")
 
         self.photo_label = ctk.CTkLabel(img_frame, text="(Chưa có ảnh)", width=120, height=120, fg_color="#3a3a3a")
         self.photo_label.grid(row=0, column=0, pady=5)
 
-        ctk.CTkButton(img_frame, text="Chọn ảnh").grid(row=1, column=0, pady=5)
+        ctk.CTkButton(img_frame, text="Chọn ảnh", command=self.select_image).grid(row=1, column=0, pady=5)
 
         # === Nút chức năng ===
         btn_frame = ctk.CTkFrame(form_frame)
@@ -82,7 +93,7 @@ class ClassManagerFrame(ctk.CTkFrame):
 
         self.tree = ttk.Treeview(
             table_frame,
-            columns=("malop", "tenlop", "makhoa", "cvht"),
+            columns=("malop", "tenlop", "makhoa", "cvht", "image_link"),
             show="headings",
             selectmode="browse"
         )
@@ -90,13 +101,16 @@ class ClassManagerFrame(ctk.CTkFrame):
         self.tree.heading("tenlop", text="Tên Lớp")
         self.tree.heading("makhoa", text="Mã Khoa")
         self.tree.heading("cvht", text="Cố Vấn")
+        self.tree.heading("image_link", text="Đường dẫn ảnh") # Tên cột ẩn
 
         self.tree.column("malop", width=100, anchor="center")
         self.tree.column("tenlop", width=200)
         self.tree.column("makhoa", width=100, anchor="center")
         self.tree.column("cvht", width=150, anchor="center")
+       
+        self.tree.column("image_link", width=0, stretch=False) # Ẩn cột image_link
 
-        self.tree.grid(row=0, column=0, sticky="nsew")
+        self.tree.grid(row=0, column=0, sticky="nsew") 
 
         scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscroll=scrollbar.set)
@@ -114,7 +128,8 @@ class ClassManagerFrame(ctk.CTkFrame):
             return
         try:
             cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT malop, tenlop, makhoa, cvht FROM lop ORDER BY malop")
+            
+            cursor.execute("SELECT malop, tenlop, makhoa, cvht, image_link FROM lop ORDER BY malop")
             self.classes = cursor.fetchall()
             cursor.close()
         except Exception as e:
@@ -128,8 +143,8 @@ class ClassManagerFrame(ctk.CTkFrame):
 
     def refresh_list(self):
         self.tree.delete(*self.tree.get_children())
-        for c in self.classes:
-            self.tree.insert("", "end", values=(c["malop"], c["tenlop"], c["makhoa"], c["cvht"]))
+        for c in self.classes:         
+            self.tree.insert("", "end", values=(c["malop"], c["tenlop"], c["makhoa"], c["cvht"], c["image_link"]))
 
 
     # === Thêm lớp ===
@@ -138,6 +153,8 @@ class ClassManagerFrame(ctk.CTkFrame):
         tenlop = self.entry_tenlop.get().strip()
         makhoa = self.entry_makhoa.get().strip()
         cvht = self.entry_cvht.get().strip()
+        # Lấy đường dẫn ảnh
+        image_link = self.selected_image_path if self.selected_image_path else "" 
 
         if not malop or not tenlop or not makhoa or not cvht:
             messagebox.showwarning("Thiếu dữ liệu", "Vui lòng nhập đầy đủ thông tin!")
@@ -149,8 +166,8 @@ class ClassManagerFrame(ctk.CTkFrame):
 
         try:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO lop (malop, tenlop, makhoa, cvht) VALUES (%s, %s, %s, %s)",
-                           (malop, tenlop, makhoa, cvht))
+            cursor.execute("INSERT INTO lop (malop, tenlop, makhoa, cvht, image_link) VALUES (%s, %s, %s, %s, %s)",
+                            (malop, tenlop, makhoa, cvht, image_link))
             conn.commit()
             messagebox.showinfo("Thành công", "Đã thêm lớp mới!")
             self.load_classes()
@@ -167,6 +184,8 @@ class ClassManagerFrame(ctk.CTkFrame):
         tenlop = self.entry_tenlop.get().strip()
         makhoa = self.entry_makhoa.get().strip()
         cvht = self.entry_cvht.get().strip()
+        # Lấy đường dẫn ảnh
+        img_path = self.selected_image_path if self.selected_image_path else "" 
 
         if not malop:
             messagebox.showwarning("Thiếu dữ liệu", "Vui lòng chọn lớp cần sửa!")
@@ -183,8 +202,8 @@ class ClassManagerFrame(ctk.CTkFrame):
                 messagebox.showerror("Lỗi", "Không tìm thấy lớp này!")
                 return
 
-            cursor.execute("UPDATE lop SET tenlop=%s, makhoa=%s, cvht=%s WHERE malop=%s",
-                           (tenlop, makhoa, cvht, malop))
+            cursor.execute("UPDATE lop SET tenlop=%s, makhoa=%s, cvht=%s, image_link=%s WHERE malop=%s",
+                            (tenlop, makhoa, cvht, img_path, malop))
             conn.commit()
             messagebox.showinfo("Thành công", "Đã cập nhật thông tin lớp!")
             self.load_classes()
@@ -229,10 +248,10 @@ class ClassManagerFrame(ctk.CTkFrame):
             return
 
         values = self.tree.item(selected_item, "values")
-        if len(values) != 4:
+        if len(values) != 5:
             return
 
-        malop, tenlop, makhoa, cvht = values
+        malop, tenlop, makhoa, cvht, image_link = values
         self.entry_malop.delete(0, END)
         self.entry_malop.insert(0, malop)
 
@@ -245,7 +264,69 @@ class ClassManagerFrame(ctk.CTkFrame):
         self.entry_cvht.delete(0, END)
         self.entry_cvht.insert(0, cvht)
 
+        # Hiển thị ảnh
+        if image_link:
+            self.display_image(image_link) 
+        else:
+            self.clear_image()
 
+    
     def clear_form(self):
         for entry in (self.entry_malop, self.entry_tenlop, self.entry_makhoa, self.entry_cvht):
             entry.delete(0, END)
+        # Clear ảnh khi clear form
+        self.clear_image() 
+
+    # === Chọn ảnh đại diện ===
+    def select_image(self):
+        """Mở hộp thoại chọn file ảnh, bắt đầu từ thư mục 'face'."""
+        file_path = filedialog.askopenfilename(
+            title="Chọn ảnh",
+            initialdir=self.face_dir, 
+            filetypes=[("Image files", "*.png *.jpg *.jpeg")]
+        )
+        if file_path:
+            self.selected_image_path = file_path
+            
+            # Tải ảnh, resize, và chuyển thành CTkImage
+            try:
+                img = Image.open(file_path)
+                img = img.resize((120, 120), Image.LANCZOS)
+                
+                # Sử dụng ctk.CTkImage
+                self.photo_tk = ctk.CTkImage(light_image=img, dark_image=img, size=(120, 120))
+                
+                # Cập nhật label
+                self.photo_label.configure(image=self.photo_tk, text="")
+                self.photo_label.image = self.photo_tk 
+                
+            except Exception as e:
+                messagebox.showerror("Lỗi Ảnh", f"Không thể tải hoặc hiển thị ảnh:\n{e}")
+                self.selected_image_path = None
+
+# Các hàm mới để chuẩn hóa việc tải, resize, và hiển thị ảnh bằng ctk.CTkImage.
+
+    def display_image(self, file_path):
+        """Tải và hiển thị ảnh lên photo_label."""
+        if os.path.exists(file_path):
+            try:
+                img = Image.open(file_path)
+                img = img.resize((120, 120), Image.LANCZOS)
+                
+                # FIX: Sử dụng ctk.CTkImage
+                self.photo_tk = ctk.CTkImage(light_image=img, dark_image=img, size=(120, 120))
+                
+                self.photo_label.configure(image=self.photo_tk, text="")
+                self.photo_label.image = self.photo_tk 
+                self.selected_image_path = file_path 
+            except Exception as e:
+                self.clear_image()
+                print(f"Lỗi tải ảnh: {e}")
+        else:
+            self.clear_image()
+
+    def clear_image(self):
+        """Xóa ảnh trên photo_label."""
+        self.photo_label.configure(image="", text="(Chưa có ảnh)")
+        self.photo_tk = None
+        self.selected_image_path = None
