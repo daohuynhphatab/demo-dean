@@ -13,8 +13,9 @@ class AttendanceFrame(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
         
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=0)
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
 
         self.current_student = None
         self.selected_image_path = None
@@ -23,33 +24,61 @@ class AttendanceFrame(ctk.CTkFrame):
 
         # === Tiêu đề ===
         title = ctk.CTkLabel(self, text="Điểm danh sinh viên", font=ctk.CTkFont(size=24, weight="bold"))
-        title.grid(row=0, column=0, columnspan=2, pady=20)
+        title.grid(row=0, column=0, columnspan=2, pady=18)
 
-        # === Nhập mã sinh viên ===
-        self.entry_id = ctk.CTkEntry(self, placeholder_text="Nhập mã sinh viên...")
+        # === Frame content tổng ===
+        content_frame = ctk.CTkFrame(self)
+        content_frame.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
+        content_frame.grid_columnconfigure(0, weight=0)
+        content_frame.grid_columnconfigure(1, weight=1)
+        content_frame.grid_rowconfigure(0, weight=0)
+        content_frame.grid_rowconfigure(1, weight=1)
+
+        # ===(top frame) = Form nhập + ảnh ===
+        top_frame = ctk.CTkFrame(content_frame)
+        top_frame.grid(row=0, column=0,columnspan=2, sticky="nsew", pady=(0,10))
+        top_frame.grid_columnconfigure(0, weight=0)
+        top_frame.grid_columnconfigure(1, weight=1)
+
+        # ===(top frame trái) Form nhập ===
+        left_top_frame = ctk.CTkFrame(top_frame)
+        left_top_frame.grid(row=0, column=0, padx=(0,20), sticky="nsew")
+        left_top_frame.grid_columnconfigure(0, weight=1)
+
+        # ===(top frame trái) Nhập mã sinh viên ===
+        self.entry_id = ctk.CTkEntry(left_top_frame, placeholder_text="Nhập mã sinh viên...")
         self.entry_id.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
 
-        btn_search = ctk.CTkButton(self, text="Tìm sinh viên", command=self.load_student_info)
+        btn_search = ctk.CTkButton(left_top_frame, text="Tìm sinh viên", command=self.load_student_info)
         btn_search.grid(row=1, column=1, padx=20, pady=10)
 
-        self.info_label = ctk.CTkLabel(self, text="Thông tin sinh viên sẽ hiển thị ở đây", wraplength=450, justify="left")
+        self.info_label = ctk.CTkLabel(left_top_frame, text="Thông tin sinh viên sẽ hiển thị ở đây", wraplength=450, justify="left")
         self.info_label.grid(row=2, column=0, columnspan=2, padx=20, pady=10, sticky="ew")
 
-        # Frame chứa ảnh
-        img_frame = ctk.CTkFrame(self)
-        img_frame.grid(row=3, column=0, columnspan=2, padx=20, pady=10)
+        #(top frame phải)form hiển thị ảnh DB
+        right_form_frame = ctk.CTkFrame(top_frame)
+        right_form_frame.grid(row=0, column=1, sticky="nsew")
+        right_form_frame.grid_columnconfigure(0, weight=1)
+
+        # (top frame phải) Hiển thị ảnh DB
         
-        ctk.CTkLabel(img_frame, text="Ảnh trong Cơ sở dữ liệu").grid(row=0, column=0, padx=20, pady=5)
-        self.lbl_db_img = ctk.CTkLabel(img_frame, text="(Ảnh DB)", width=200, height=200, fg_color="#3a3a3a")
+        ctk.CTkLabel(right_form_frame, text="Ảnh trong Cơ sở dữ liệu").grid(row=0, column=0, padx=20, pady=5)
+        self.lbl_db_img = ctk.CTkLabel(right_form_frame, text="(Ảnh DB)", width=200, height=200, fg_color="#3a3a3a")
         self.lbl_db_img.grid(row=1, column=0, padx=20, pady=5)
-        
-        ctk.CTkLabel(img_frame, text="Ảnh chụp/Tải lên").grid(row=0, column=1, padx=20, pady=5)
-        self.lbl_input_img = ctk.CTkLabel(img_frame, text="(Ảnh Input)", width=200, height=200, fg_color="#3a3a3a")
+
+        #(mid frame) form hiển thị ảnh Input/Webcam)
+        mid_frame= ctk.CTkFrame(content_frame)
+        mid_frame.grid(row=1, column=0,columnspan=2, sticky="nsew")
+        mid_frame.grid_columnconfigure(0, weight=1)
+        mid_frame.grid_rowconfigure(0, weight=0)
+
+        ctk.CTkLabel(mid_frame, text="Ảnh chụp/Tải lên").grid(row=0, column=1, padx=20, pady=5)
+        self.lbl_input_img = ctk.CTkLabel(mid_frame, text="(Ảnh Input)", width=600, height=200, fg_color="#3a3a3a")
         self.lbl_input_img.grid(row=1, column=1, padx=20, pady=5)
 
         # Nút chức năng
-        btn_frame = ctk.CTkFrame(self)
-        btn_frame.grid(row=4, column=0, columnspan=2, pady=20)
+        btn_frame = ctk.CTkFrame(mid_frame)
+        btn_frame.grid(row=2, column=0, columnspan=2, pady=20)
 
         ctk.CTkButton(btn_frame, text="Tải ảnh điểm danh", command=self.upload_image).grid(row=0, column=0, padx=10)
         ctk.CTkButton(btn_frame, text="📸 Chụp ảnh (Webcam)", command=self.capture_image_webcam).grid(row=0, column=1, padx=10)
