@@ -295,7 +295,7 @@ class FacultyManagerFrame(ctk.CTkFrame):
                 messagebox.showerror("Lỗi Ảnh", f"Không thể tải hoặc hiển thị ảnh:\n{e}")
                 self.selected_image_path = None
 
-# Các hàm mới để chuẩn hóa việc tải, resize, và hiển thị ảnh bằng ctk.CTkImage.
+# Các hàm để chuẩn hóa việc tải, resize, và hiển thị ảnh bằng ctk.CTkImage.
     def display_image(self, file_path):
         """Tải và hiển thị ảnh lên photo_label."""
         if os.path.exists(file_path):

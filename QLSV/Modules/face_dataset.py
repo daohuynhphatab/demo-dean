@@ -99,9 +99,8 @@ class AttendanceFrame(ctk.CTkFrame):
             query = """
                 SELECT 
                     sv.id, 
-                    sv.name,         
-                    sv.name,               
-                    sv. classid,      
+                    sv.name,                        
+                    sv.classid,      
                     sv.faculty,     
                     sv.image_link
                 FROM 
